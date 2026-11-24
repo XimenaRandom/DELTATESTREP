@@ -9,8 +9,8 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // La URL de la API es configurable en wwwroot/appsettings.json.
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7287/";
-if (!Uri.TryCreate(apiBaseUrl, UriKind.Absolute, out var apiBase))
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? builder.HostEnvironment.BaseAddress;
+if (!Uri.TryCreate(new Uri(builder.HostEnvironment.BaseAddress), apiBaseUrl, out var apiBase))
     throw new InvalidOperationException("ApiBaseUrl no es una URL absoluta válida.");
 
 // Register message handler for requests - DEBE IR ANTES de AddHttpClient

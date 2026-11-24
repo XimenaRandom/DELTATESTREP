@@ -1,0 +1,5 @@
+# Heroku Cedar: API + Blazor in one web dyno; database hosted on Supabase.
+# Set ConnectionStrings__DefaultConnection in Heroku Config Vars.
+build:
+  docker:
+    web: Dockerfile

@@ -1,0 +1,52 @@
+DELTATEST / delta-prod — Heroku + Supabase
+
+Heroku usa heroku.yml, no Docker Compose. Requiere una app Cedar con stack container.
+Navegador --HTTPS--> router Heroku --> Blazor estático + API ASP.NET Core
+                                      |
+                                      +--TLS--> PostgreSQL en Supabase
+
+CONFIGURACIÓN EN HEROKU > Settings > Config Vars
+ConnectionStrings__DefaultConnection = cadena Npgsql de Supabase:
+Host=HOST;Port=5432;Database=postgres;Username=USUARIO;Password=CLAVE;SSL Mode=Require
+Usa los valores reales que entrega Supabase, no los placeholders de este ejemplo.
+La clave debe configurarse en Heroku; nunca en Git ni en el cliente Blazor.
+Esta variable tiene prioridad sobre DATABASE_URL si existen ambas.
+ASPNETCORE_ENVIRONMENT = Production
+AllowedHosts = *
+Auth__CookieSameSite = Lax
+ClientBaseUrl = /
+GEMINI_API_KEY = opcional, si se utiliza el asistente.
+
+Supabase: si el endpoint directo no tiene conectividad desde el entorno de
+Heroku, utiliza el endpoint Session pooler que entrega el panel de Supabase,
+con su host y username exactos. La conexión directa no es una red privada
+Docker. El navegador solo llama a /api; nunca recibe la contraseña de BD.
+
+DESPLIEGUE
+1. Instalar Heroku CLI y ejecutar heroku login.
+2. Configurar las variables anteriores en delta-prod.
+3. Confirmar los cambios en Git y ejecutar ./deploy-heroku.ps1 -App delta-prod.
+   Alternativa con integración GitHub: establecer el stack container una vez,
+   luego desplegar main desde el panel Deploy.
+   heroku stack:set container -a delta-prod
+
+No se crea Heroku Postgres ni se crean tablas o ejecutan migraciones.
+Se utiliza el esquema existente en Supabase. Si faltan tablas/columnas, se
+necesita revisar el esquema y aplicar los cambios específicos por separado.
+No se transfieren datos ni se crea un administrador.
+
+DIAGNÓSTICO
+heroku logs --tail -a delta-prod
+heroku ps -a delta-prod
+Visitar /health, login y reportes. /health solo comprueba el proceso, no la BD.
+Para diagnosticar un fallo del build se necesita el build log del panel Deploy.
+
+Mantener web=1: el registro de sesiones revocadas actual vive en memoria.
+Tras reinicios pueden requerirse nuevos logins por claves locales de cookies.
+
+Validado localmente: publish Release API y Blazor; 95 pruebas aprobadas;
+HTTP 200 en raíz/ruta SPA/framework/health; API inexistente 404; HTTPS redirect.
+No validado: build Docker/Linux, conexión real Supabase ni deploy remoto.
+Fuentes:
+https://devcenter.heroku.com/articles/build-docker-images-heroku-yml
+https://devcenter.heroku.com/articles/aspnetcore-app-configuration

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -8,6 +9,19 @@ using DELTAAPI.Models;
 using DELTAAPI.Security;
 
 var builder = WebApplication.CreateBuilder(args);
+var isHeroku = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DYNO"));
+if (isHeroku)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+        options.ForwardLimit = 1;
+    });
+    builder.Services.AddHttpsRedirection(options => options.HttpsPort = 443);
+}
+
 
 // QuestPDF: licencia comunitaria (proyecto académico).
 QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
@@ -80,6 +94,24 @@ builder.Services.AddCors(options =>
 
 // Register EF DbContext with retry on failure (PostgreSQL / Supabase)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// Prefer the explicitly configured Supabase connection; DATABASE_URL is a fallback.
+var databaseUrl = builder.Configuration["DATABASE_URL"];
+if (string.IsNullOrWhiteSpace(connectionString) && !string.IsNullOrWhiteSpace(databaseUrl))
+{
+    var uri = new Uri(databaseUrl);
+    var credentials = uri.UserInfo.Split(':', 2);
+    connectionString = new Npgsql.NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Port = uri.Port > 0 ? uri.Port : 5432,
+        Database = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/')),
+        Username = Uri.UnescapeDataString(credentials[0]),
+        Password = credentials.Length > 1 ? Uri.UnescapeDataString(credentials[1]) : "",
+        SslMode = Npgsql.SslMode.Require,
+        Pooling = true,
+        MaxPoolSize = 10
+    }.ConnectionString;
+}
 
 if (string.IsNullOrWhiteSpace(connectionString))
 {
@@ -224,6 +256,8 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+if (isHeroku) app.UseForwardedHeaders();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -247,13 +281,14 @@ app.Use(async (context, next) =>
     headers["Referrer-Policy"] = "no-referrer";
     headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
     headers["Content-Security-Policy"] =
-        "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; " +
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; " +
         "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
     await next();
 });
 
 app.UseHttpsRedirection();
+app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
 // Enable CORS for requests from the client - Debe ir ANTES de Authentication y Authorization
@@ -296,5 +331,9 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
+// Unknown API routes must not return the SPA HTML.
+app.Map("/api/{**path}", () => Results.NotFound()).AllowAnonymous();
+app.MapFallbackToFile("index.html").AllowAnonymous();
 
 app.Run();
