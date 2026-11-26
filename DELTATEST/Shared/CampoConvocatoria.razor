@@ -1,0 +1,31 @@
+<div class="mb-3">
+    <label class="form-label" for="@Id">@Etiqueta</label>
+    <select id="@Id" class="form-select" value="@Seleccion" @onchange="Cambiar">
+        <option value="">Seleccione una opción</option>
+        @foreach (var opcion in Opciones) { <option @key="opcion" value="@opcion">@opcion</option> }
+        <option value="__personalizado">Personalizado</option>
+    </select>
+    @if (Seleccion == "__personalizado")
+    {
+        <label class="form-label mt-2" for="@(Id + "-texto")">@Etiqueta: contenido personalizado</label>
+        <textarea id="@(Id + "-texto")" class="form-control" rows="@Filas" maxlength="@Maximo" value="@Value" @oninput="e => ValueChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty)"></textarea>
+    }
+</div>
+@code {
+    [Parameter] public string Id { get; set; } = "";
+    [Parameter] public string Etiqueta { get; set; } = "";
+    [Parameter] public string[] Opciones { get; set; } = Array.Empty<string>();
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public int Maximo { get; set; } = 10000;
+    [Parameter] public int Filas { get; set; } = 3;
+    private bool personalizado;
+    private string Seleccion => personalizado || (!string.IsNullOrEmpty(Value) && !Opciones.Contains(Value)) ? "__personalizado" : Value;
+    private async Task Cambiar(ChangeEventArgs e)
+    {
+        var valor = e.Value?.ToString() ?? "";
+        personalizado = valor == "__personalizado";
+        if (!personalizado) await ValueChanged.InvokeAsync(valor);
+        else if (Opciones.Contains(Value)) await ValueChanged.InvokeAsync("");
+    }
+}

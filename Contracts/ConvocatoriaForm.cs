@@ -5,7 +5,7 @@ namespace Delta.Contracts;
 public class ConvocatoriaForm : IValidatableObject
 {
     public bool Publicada { get; set; } = true;
-    [Required(ErrorMessage = "Ingrese el código."), StringLength(60, ErrorMessage = "Máximo 60 caracteres.")]
+    [StringLength(60, ErrorMessage = "Máximo 60 caracteres.")]
     public string Codigo { get; set; } = "";
     [Required(ErrorMessage = "Ingrese el título."), StringLength(255, ErrorMessage = "Máximo 255 caracteres.")]
     public string NombreConvocatoria { get; set; } = "";
@@ -24,7 +24,25 @@ public class ConvocatoriaForm : IValidatableObject
     [Required(ErrorMessage = "Complete este campo obligatorio."), StringLength(10000, ErrorMessage = "Máximo 10000 caracteres.")]
     public string Modalidad { get; set; } = "";
     [Required(ErrorMessage = "Complete este campo obligatorio."), StringLength(10000, ErrorMessage = "Máximo 10000 caracteres.")]
-    public string Cronograma { get; set; } = "";
+    private string cronograma = "";
+    public string Cronograma
+    {
+        get => FechaEvaluacion.HasValue && HoraInicio.HasValue && HoraFin.HasValue
+            ? $"Fecha: {FechaEvaluacion:yyyy-MM-dd} | Horario: {HoraInicio:HH:mm} - {HoraFin:HH:mm} (Bolivia)" : cronograma;
+        set => cronograma = value ?? "";
+    }
+    public DateOnly? FechaEvaluacion { get; set; }
+    public TimeOnly? HoraInicio { get; set; }
+    public TimeOnly? HoraFin { get; set; }
+    public bool CargarCronograma()
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(cronograma,
+            @"^Fecha: (\d{4}-\d{2}-\d{2}) \| Horario: (\d{2}:\d{2}) - (\d{2}:\d{2}) \(Bolivia\)$");
+        if (!m.Success || !DateOnly.TryParseExact(m.Groups[1].Value,"yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.None,out var fecha)
+            || !TimeOnly.TryParseExact(m.Groups[2].Value,"HH:mm",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.None,out var inicio)
+            || !TimeOnly.TryParseExact(m.Groups[3].Value,"HH:mm",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.None,out var fin)) return false;
+        FechaEvaluacion=fecha; HoraInicio=inicio; HoraFin=fin; return true;
+    }
     [Required(ErrorMessage = "Complete este campo obligatorio."), StringLength(10000, ErrorMessage = "Máximo 10000 caracteres.")]
     public string Instrucciones { get; set; } = "";
     [Required(ErrorMessage = "Complete este campo obligatorio."), StringLength(500, ErrorMessage = "Máximo 500 caracteres.")]
@@ -40,6 +58,15 @@ public class ConvocatoriaForm : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        if (FechaEvaluacion.HasValue || HoraInicio.HasValue || HoraFin.HasValue)
+        {
+            if (!FechaEvaluacion.HasValue || !HoraInicio.HasValue || !HoraFin.HasValue)
+                yield return new ValidationResult("Seleccione fecha, hora de inicio y hora de fin de la evaluación.");
+            if (HoraFin <= HoraInicio)
+                yield return new ValidationResult("La hora de fin debe ser posterior a la de inicio.", new[] { nameof(HoraFin) });
+            if (FechaEvaluacion < FechaConvocatoria)
+                yield return new ValidationResult("La evaluación no puede ser anterior a la publicación.", new[] { nameof(FechaEvaluacion) });
+        }
         if (FechaConvocatoria == DateOnly.MinValue || FechaCierre == DateOnly.MinValue)
             yield return new ValidationResult("Ingrese fechas válidas.", new[] { nameof(FechaConvocatoria), nameof(FechaCierre) });
         if (FechaCierre < FechaConvocatoria)

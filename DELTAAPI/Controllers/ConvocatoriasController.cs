@@ -94,6 +94,8 @@ public class ConvocatoriasController(DeltaTestContext db) : ControllerBase
     {
         var fila = await db.Convocatoria.SingleOrDefaultAsync(c => c.IdConvocatoria == id, ct);
         if (fila == null) return NotFound();
+        if (string.IsNullOrWhiteSpace(form.Codigo))
+            form.Codigo = $"CONV-{Hoy.Year}-{Guid.NewGuid():N}"[..22].ToUpperInvariant();
         var codigo = form.Codigo.Trim().ToUpperInvariant();
         if (await db.Convocatoria.AnyAsync(c => c.IdConvocatoria != id && c.Codigo == codigo, ct))
             return Conflict(new { mensaje = "Ya existe una convocatoria con ese código." });
@@ -127,6 +129,8 @@ public class ConvocatoriasController(DeltaTestContext db) : ControllerBase
     {
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var usuarioId))
             return Unauthorized();
+        if (string.IsNullOrWhiteSpace(form.Codigo))
+            form.Codigo = $"CONV-{Hoy.Year}-{Guid.NewGuid():N}"[..22].ToUpperInvariant();
         var codigo = form.Codigo.Trim().ToUpperInvariant();
         if (await db.Convocatoria.AnyAsync(c => c.Codigo == codigo, ct))
             return Conflict(new { mensaje = "Ya existe una convocatoria con ese código." });
@@ -138,7 +142,7 @@ public class ConvocatoriasController(DeltaTestContext db) : ControllerBase
         {
             return Conflict(new { mensaje = "Ya existe una convocatoria con ese código." });
         }
-        return Created($"/api/convocatorias/{fila.IdConvocatoria}/pdf", new { fila.IdConvocatoria });
+        return Created($"/api/convocatorias/{fila.IdConvocatoria}/pdf", new { fila.IdConvocatoria, fila.Codigo });
     }
 
     private static void Aplicar(Convocatorium fila, ConvocatoriaForm form)

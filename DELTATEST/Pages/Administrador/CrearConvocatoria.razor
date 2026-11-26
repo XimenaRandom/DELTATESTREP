@@ -1,4 +1,4 @@
-﻿@page "/administrador/convocatorias/crear"
+@page "/administrador/convocatorias/crear"
 @attribute [Authorize(Roles = "Administrador,Inspector")]
 @page "/administrador/convocatorias/{Id:int}"
 @page "/administrador/convocatorias/{Id:int}/editar"
@@ -14,86 +14,54 @@
 <div class="container py-4 convocatoria-editor" style="max-width: 900px">
     <h1 class="h3 mt-3">@Titulo</h1>
     @if (Id.HasValue) { <a href="/administrador/convocatorias">Volver a convocatorias</a> }
-    <p>Todos los campos son obligatorios. La publicación será visible desde la fecha indicada. La fecha límite incluye todo ese día en Bolivia.</p>
+    <p>Seleccione las opciones disponibles o elija Personalizado cuando necesite otro contenido. El código se asigna al guardar. La publicación será visible desde la fecha indicada. La fecha límite incluye todo ese día en Bolivia.</p>
     @if (error != null) { <div class="alert alert-danger" role="alert">@error</div> }
     @if (cargando) { <p role="status">Cargando convocatoria...</p> }
     @if (guardada)
     {
-        <div class="alert alert-success" role="status">Convocatoria guardada correctamente. @aviso</div>
+        <div class="alert alert-success" role="status">Convocatoria @form.Codigo guardada correctamente. @aviso</div>
         <a href="/administrador/convocatorias" class="btn btn-warning">Ver convocatorias</a>
         <button type="button" class="btn btn-outline-secondary" @onclick="Nueva">Crear otra</button>
     }
     else if (!cargando && !falloCarga)
     {
-        <EditForm Model="form" OnValidSubmit="Guardar">
+        <EditForm @key="form" Model="form" OnValidSubmit="Guardar">
             <DataAnnotationsValidator />
             <ValidationSummary />
             <fieldset disabled="@(guardando || SoloLectura)" class="convocatoria-fields">
                 <div class="mb-3">
                     <label for="Codigo" class="form-label">Código de convocatoria</label>
-                    <InputText id="Codigo" class="form-control" @bind-Value="form.Codigo" maxlength="60" />
-                    <ValidationMessage For="@(() => form.Codigo)" />
+                    <input id="Codigo" class="form-control" value="@(string.IsNullOrWhiteSpace(form.Codigo) ? "Se asignará automáticamente al guardar" : form.Codigo)" readonly />
                 </div>
-                <div class="mb-3">
-                    <label for="NombreConvocatoria" class="form-label">Título</label>
-                    <InputText id="NombreConvocatoria" class="form-control" @bind-Value="form.NombreConvocatoria" maxlength="255" />
-                    <ValidationMessage For="@(() => form.NombreConvocatoria)" />
-                </div>
-                <div class="mb-3">
-                    <label for="EntidadEmisora" class="form-label">Entidad emisora</label>
-                    <InputText id="EntidadEmisora" class="form-control" @bind-Value="form.EntidadEmisora" maxlength="200" />
-                    <ValidationMessage For="@(() => form.EntidadEmisora)" />
-                </div>
-                <div class="mb-3">
-                    <label for="Resumen" class="form-label">Resumen para la tarjeta</label>
-                    <InputTextArea id="Resumen" class="form-control" @bind-Value="form.Resumen" maxlength="500" rows="4" />
-                    <ValidationMessage For="@(() => form.Resumen)" />
-                </div>
-                <div class="mb-3">
-                    <label for="Descripcion" class="form-label">Descripción</label>
-                    <InputTextArea id="Descripcion" class="form-control" @bind-Value="form.Descripcion" maxlength="10000" rows="4" />
-                    <ValidationMessage For="@(() => form.Descripcion)" />
-                </div>
-                <div class="mb-3">
-                    <label for="Objetivo" class="form-label">Objetivo</label>
-                    <InputTextArea id="Objetivo" class="form-control" @bind-Value="form.Objetivo" maxlength="10000" rows="4" />
-                    <ValidationMessage For="@(() => form.Objetivo)" />
-                </div>
-                <div class="mb-3">
-                    <label for="Participantes" class="form-label">Participantes convocados</label>
-                    <InputTextArea id="Participantes" class="form-control" @bind-Value="form.Participantes" maxlength="10000" rows="4" />
-                    <ValidationMessage For="@(() => form.Participantes)" />
-                </div>
-                <div class="mb-3">
-                    <label for="Requisitos" class="form-label">Requisitos y criterios para laboratorios</label>
-                    <InputTextArea id="Requisitos" class="form-control" @bind-Value="form.Requisitos" maxlength="10000" rows="4" />
-                    <ValidationMessage For="@(() => form.Requisitos)" />
-                </div>
-                <div class="mb-3">
-                    <label for="Modalidad" class="form-label">Modalidad (examen teórico / práctico)</label>
-                    <InputTextArea id="Modalidad" class="form-control" @bind-Value="form.Modalidad" maxlength="10000" rows="4" />
-                    <ValidationMessage For="@(() => form.Modalidad)" />
-                </div>
-                <div class="mb-3">
-                    <label for="Cronograma" class="form-label">Cronograma y horarios</label>
-                    <InputTextArea id="Cronograma" class="form-control" @bind-Value="form.Cronograma" maxlength="10000" rows="4" />
+                <CampoConvocatoria Id="NombreConvocatoria" Etiqueta="Título" Opciones="Titulos" @bind-Value="form.NombreConvocatoria" Maximo="255" Filas="1" />
+                <ValidationMessage For="@(() => form.NombreConvocatoria)" />
+                <CampoConvocatoria Id="EntidadEmisora" Etiqueta="Entidad emisora" Opciones="Entidades" @bind-Value="form.EntidadEmisora" Maximo="200" Filas="1" />
+                <CampoConvocatoria Id="Resumen" Etiqueta="Resumen para la tarjeta" Opciones="Resumenes" @bind-Value="form.Resumen" Maximo="500" />
+                <CampoConvocatoria Id="Descripcion" Etiqueta="Descripción" Opciones="Descripciones" @bind-Value="form.Descripcion" />
+                <CampoConvocatoria Id="Objetivo" Etiqueta="Objetivo" Opciones="Objetivos" @bind-Value="form.Objetivo" />
+                <CampoConvocatoria Id="Participantes" Etiqueta="Participantes convocados" Opciones="Participantes" @bind-Value="form.Participantes" />
+                <CampoConvocatoria Id="Requisitos" Etiqueta="Requisitos y criterios" Opciones="Requisitos" @bind-Value="form.Requisitos" />
+                <CampoConvocatoria Id="Modalidad" Etiqueta="Modalidad de evaluación" Opciones="Modalidades" @bind-Value="form.Modalidad" />
+                <fieldset class="mb-3">
+                    <legend class="h6">Cronograma de evaluación (hora de Bolivia)</legend>
+                    @if (cronogramaAnterior)
+                    {
+                        <div class="form-check mb-3"><InputCheckbox id="usar-calendario" class="form-check-input" @bind-Value="usarCalendario" /><label for="usar-calendario" class="form-check-label">Reemplazar el cronograma anterior por fecha y horas</label></div>
+                    }
+                    @if (!cronogramaAnterior || usarCalendario)
+                    {
+                        <div class="row">
+                            <div class="col-md-6 mb-3"><label for="fecha-evaluacion" class="form-label">Fecha de evaluación</label><InputDate id="fecha-evaluacion" min="@(form.FechaConvocatoria?.ToString("yyyy-MM-dd"))" class="form-control" @bind-Value="form.FechaEvaluacion" /></div>
+                            <div class="col-md-3 mb-3"><label for="hora-inicio" class="form-label">Hora de inicio</label><InputDate id="hora-inicio" Type="InputDateType.Time" class="form-control" @bind-Value="form.HoraInicio" /></div>
+                            <div class="col-md-3 mb-3"><label for="hora-fin" class="form-label">Hora de fin</label><InputDate id="hora-fin" Type="InputDateType.Time" class="form-control" @bind-Value="form.HoraFin" /></div>
+                        </div>
+                    }
+                    else { <p class="form-control-plaintext">@form.Cronograma</p> }
                     <ValidationMessage For="@(() => form.Cronograma)" />
-                </div>
-                <div class="mb-3">
-                    <label for="Instrucciones" class="form-label">Instrucciones de participación y obligatoriedad</label>
-                    <InputTextArea id="Instrucciones" class="form-control" @bind-Value="form.Instrucciones" maxlength="10000" rows="4" />
-                    <ValidationMessage For="@(() => form.Instrucciones)" />
-                </div>
-                <div class="mb-3">
-                    <label for="Lugar" class="form-label">Lugar o plataforma</label>
-                    <InputText id="Lugar" class="form-control" @bind-Value="form.Lugar" maxlength="500" />
-                    <ValidationMessage For="@(() => form.Lugar)" />
-                </div>
-                <div class="mb-3">
-                    <label for="Contacto" class="form-label">Contacto (correo, teléfono o unidad responsable)</label>
-                    <InputText id="Contacto" class="form-control" @bind-Value="form.Contacto" maxlength="500" />
-                    <ValidationMessage For="@(() => form.Contacto)" />
-                </div>
+                </fieldset>
+                <CampoConvocatoria Id="Instrucciones" Etiqueta="Instrucciones de participación" Opciones="Instrucciones" @bind-Value="form.Instrucciones" />
+                <CampoConvocatoria Id="Lugar" Etiqueta="Lugar o plataforma" Opciones="Lugares" @bind-Value="form.Lugar" Maximo="500" Filas="1" />
+                <CampoConvocatoria Id="Contacto" Etiqueta="Contacto o unidad responsable" Opciones="Contactos" @bind-Value="form.Contacto" Maximo="500" Filas="1" />
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="publicacion" class="form-label">Fecha de publicación</label>
@@ -102,7 +70,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="cierre" class="form-label">Fecha límite</label>
-                        <InputDate id="cierre" class="form-control" @bind-Value="form.FechaCierre" />
+                        <InputDate id="cierre" min="@(form.FechaConvocatoria?.ToString("yyyy-MM-dd"))" class="form-control" @bind-Value="form.FechaCierre" />
                         <ValidationMessage For="@(() => form.FechaCierre)" />
                     </div>
                 </div>
@@ -133,17 +101,29 @@
     private string Titulo => !Id.HasValue ? "Crear convocatoria" : SoloLectura ? "Detalle de convocatoria" : "Editar convocatoria";
     private bool cargando, falloCarga;
     private ConvocatoriaForm form = new();
+    private bool cronogramaAnterior, usarCalendario;
+    private static readonly string[] Titulos = { "Convocatoria de evaluación teórica", "Convocatoria de evaluación práctica", "Convocatoria de evaluación integral" };
+    private static readonly string[] Entidades = { "Laboratorios Delta S.A." };
+    private static readonly string[] Resumenes = { "Evaluación de conocimientos del personal.", "Evaluación práctica de competencias.", "Evaluación teórica y práctica de competencias." };
+    private static readonly string[] Descripciones = { "Se convoca al personal seleccionado a participar en una evaluación de conocimientos.", "Se convoca al personal seleccionado a demostrar sus competencias mediante una evaluación práctica.", "Se convoca al personal seleccionado a una evaluación teórica y práctica." };
+    private static readonly string[] Objetivos = { "Evaluar los conocimientos relacionados con el puesto de destino.", "Evaluar las competencias prácticas relacionadas con el puesto de destino.", "Identificar fortalezas y oportunidades de mejora del personal." };
+    private static readonly string[] Participantes = { "Empleados", "Pasantes", "Empleados y pasantes" };
+    private static readonly string[] Requisitos = { "Contar con una cuenta activa en DELTATEST.", "Contar con una cuenta activa en DELTATEST y tener completos los datos laborales.", "Presentar la documentación indicada por el responsable de la evaluación." };
+    private static readonly string[] Modalidades = { "Teórica", "Práctica", "Teórica y práctica" };
+    private static readonly string[] Instrucciones = { "Ingresar a DELTATEST con la cuenta asignada y seguir las indicaciones del evaluador.", "Presentarse en el lugar y horario indicados y seguir las instrucciones del evaluador.", "Completar la evaluación teórica en DELTATEST y realizar la práctica según las indicaciones del evaluador." };
+    private static readonly string[] Lugares = { "Plataforma DELTATEST", "Laboratorios Delta S.A.", "Plataforma DELTATEST y laboratorios Delta S.A." };
+    private static readonly string[] Contactos = { "Inspector responsable de la evaluación", "Administración de Laboratorios Delta S.A." };
     private bool ConvocatoriaActiva { get => form.EstadoConvocatoria == "Activa"; set => form.EstadoConvocatoria = value ? "Activa" : "Cerrada"; }
     private bool guardando, guardada;
     private string? error, aviso;
     private void Nueva()
     {
         if (Id.HasValue) Navigation.NavigateTo("/administrador/convocatorias/crear");
-        else { form = new(); guardada = false; error = null; }
+        else { form = new(); cronogramaAnterior=false; usarCalendario=true; guardada = false; error = null; }
     }
     protected override async Task OnParametersSetAsync()
     {
-        form = new(); error = null; guardada = false; falloCarga = false;
+        form = new(); cronogramaAnterior=false; usarCalendario=true; error = null; guardada = false; falloCarga = false;
         if (!Id.HasValue) return;
         cargando = true;
         try
@@ -156,6 +136,8 @@
                 return;
             }
             form = await response.Content.ReadFromJsonAsync<ConvocatoriaForm>() ?? throw new JsonException();
+            cronogramaAnterior = !form.CargarCronograma() && !string.IsNullOrWhiteSpace(form.Cronograma);
+            usarCalendario = !cronogramaAnterior;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
         { falloCarga = true; error = "No se pudo cargar la convocatoria. Comprueba la conexión y vuelve a intentarlo."; }
@@ -164,6 +146,9 @@
     private async Task Guardar()
     {
         if (guardando || SoloLectura || cargando || falloCarga) return;
+        if ((!cronogramaAnterior || usarCalendario) && (!form.FechaEvaluacion.HasValue || !form.HoraInicio.HasValue || !form.HoraFin.HasValue))
+        { error="Seleccione la fecha y las horas de la evaluación."; return; }
+        if (cronogramaAnterior && !usarCalendario) { form.FechaEvaluacion=null; form.HoraInicio=null; form.HoraFin=null; }
         guardando = true;
         error = null;
         try
@@ -189,11 +174,16 @@
                 error ??= "No se pudo guardar la convocatoria. Revise los datos e intente nuevamente.";
                 return;
             }
+            if (!Id.HasValue)
+            {
+                var creada = await response.Content.ReadFromJsonAsync<JsonElement>();
+                if (creada.TryGetProperty("codigo", out var codigo)) form.Codigo=codigo.GetString() ?? "";
+            }
             guardada = true;
             aviso = form.Publicada ? "Será pública desde la fecha indicada; en inicio se muestran solo las tres últimas." : "La convocatoria no está publicada y solo es visible en administración.";
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or JsonException)
-        { error = "No se pudo confirmar el guardado. Compruebe la conexión y el código antes de reintentar."; }
+        { error = "No se pudo confirmar el guardado. Compruebe la conexión y el listado de convocatorias antes de reintentar."; }
         finally { guardando = false; }
     }
 }

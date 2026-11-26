@@ -39,7 +39,6 @@ else
    <th>Tipo de personal</th>
      <th>Puesto Actual</th>
    <th>Puesto a rotar</th>
-    <th>Puesto Solicitado</th>
    <th>Estado</th>
       <th>Acciones</th>
         </tr>
@@ -56,7 +55,6 @@ else
    <td data-label="Tipo de personal">@(string.IsNullOrWhiteSpace(u.TipoEvaluado) ? "Sin configurar" : u.TipoEvaluado)</td>
    <td data-label="Puesto actual">@(string.IsNullOrWhiteSpace(u.PuestoActual) ? "—" : u.PuestoActual)</td>
    <td data-label="Puesto a rotar">@(string.IsNullOrWhiteSpace(u.PuestoARotar) ? "—" : u.PuestoARotar)</td>
-   <td data-label="Puesto solicitado">@(string.IsNullOrWhiteSpace(u.PuestoSolicitado) ? "—" : u.PuestoSolicitado)</td>
         <td data-label="Estado">@u.Estado</td>
   <td class="acciones-cell" data-label="Acciones">
        <button class="btn-accion btn-ver" title="Ver" @onclick="() => ViewUser(u.IdUsuario)">
