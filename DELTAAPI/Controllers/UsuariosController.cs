@@ -78,6 +78,7 @@ IdUsuario = u.IdUsuario,
                 user.NombreCompleto,
                 user.Correo,
                 user.Ci,
+                user.Expedicion,
                 user.Telefono,
                 FechaIngreso = fecha,
                 user.TipoEvaluado,
@@ -114,6 +115,9 @@ IdUsuario = u.IdUsuario,
         {
             public string? NombreCompleto { get; set; }
             public string? Ci { get; set; }
+            public string? Expedicion { get; set; }
+            public string? Password { get; set; }
+            public string? ConfirmPassword { get; set; }
             public string? Correo { get; set; }
             public string? Telefono { get; set; }
             public string? FechaIngreso { get; set; } // expected yyyy-MM-dd or null
@@ -201,6 +205,22 @@ IdUsuario = u.IdUsuario,
                     return BadRequest("No puede desactivar su propia cuenta.");
             }
 
+            if (dto.Expedicion != null)
+            {
+                dto.Expedicion = dto.Expedicion.Trim().ToUpperInvariant();
+                if (dto.Expedicion.Length > 0 && !new[] { "LP", "SC", "CB", "OR", "PT", "TJ", "BN", "CH", "PD" }.Contains(dto.Expedicion))
+                    return BadRequest("Extensión no válida.");
+            }
+            if (!string.IsNullOrEmpty(dto.Password))
+            {
+                if (!isAdmin && !isInspector) return Forbid();
+                var passwordError = PasswordPolicy.Validate(dto.Password);
+                if (passwordError != null) return BadRequest(passwordError);
+                if (dto.Password != dto.ConfirmPassword) return BadRequest("Las contraseñas no coinciden.");
+            }
+            else if (!string.IsNullOrEmpty(dto.ConfirmPassword))
+                return BadRequest("Ingrese la nueva contraseña antes de confirmarla.");
+
             if (dto.TipoEvaluado != null || dto.PuestoActual != null || dto.PuestoARotar != null || dto.PuestoSolicitado != null)
             {
                 var errorLaboral = Delta.Contracts.VinculacionLaboral.Validar(dto.TipoEvaluado ?? user.TipoEvaluado,dto.PuestoActual,dto.PuestoARotar,dto.PuestoSolicitado);
@@ -251,6 +271,8 @@ IdUsuario = u.IdUsuario,
                 }
             }
 
+            if (dto.Expedicion != null) user.Expedicion = string.IsNullOrEmpty(dto.Expedicion) ? null : dto.Expedicion;
+            if (!string.IsNullOrEmpty(dto.Password)) user.Contraseña = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             await _context.SaveChangesAsync();
             return NoContent();
         }

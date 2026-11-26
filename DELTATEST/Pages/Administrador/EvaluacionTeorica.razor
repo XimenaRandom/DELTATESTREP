@@ -49,16 +49,6 @@
 
             <div class="panel-ia-controles">
                 <div class="campo-ia">
-                    <label class="label-pregunta" for="destino-ia">Área / puesto de destino</label>
-                    <input id="destino-ia" class="input-respuesta" value="@DestinoSeleccionado" readonly
-                           placeholder="Seleccione un usuario con destino configurado" />
-                    @if (idUsuarioSeleccionado > 0 && string.IsNullOrWhiteSpace(DestinoSeleccionado))
-                    {
-                        <p class="text-danger mt-2" role="status">Complete el puesto a rotar o solicitado en la cuenta del usuario.</p>
-                    }
-                </div>
-
-                <div class="campo-ia">
                     <label class="label-pregunta">Nivel de Dificultad</label>
                     <select class="input-respuesta" @bind="dificultadSeleccionada" disabled="@cargandoIA">
                         @foreach (var nivel in nivelesDificultad)
@@ -69,7 +59,7 @@
                 </div>
 
                 <div class="campo-ia campo-ia-boton">
-                    <button type="button" class="btn btn-ia" @onclick="GenerarPreguntasConIA" disabled="@(cargando || cargandoIA || string.IsNullOrWhiteSpace(DestinoSeleccionado))">
+                    <button type="button" class="btn btn-ia" @onclick="GenerarPreguntasConIA" disabled="@(cargando || cargandoIA || idUsuarioSeleccionado <= 0)">
                         @if (cargandoIA)
                         {
                             <span class="spinner"></span>
