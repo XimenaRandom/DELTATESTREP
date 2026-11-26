@@ -24,7 +24,7 @@
         <!-- Selector de usuario -->
         <div class="fila-pregunta">
             <label class="label-pregunta">Seleccionar Usuario</label>
-            <select class="input-respuesta" @bind="idUsuarioSeleccionado" disabled="@cargando">
+            <select class="input-respuesta" @bind="idUsuarioSeleccionado" @bind:after="AlCambiarUsuario" disabled="@(cargando || cargandoIA)">
       <option value="0">-- Seleccione un usuario --</option>
          @if (usuarios != null)
      {
@@ -43,19 +43,19 @@
             </div>
             <p class="panel-ia-desc">
                 Genera automáticamente las 5 preguntas abiertas y las 5 de opción múltiple,
-                contextualizadas en el rubro farmacéutico de Delta (medicamentos, desarrollo
-                farmacéutico y normativas de salud).
+                basadas en el área o puesto de destino del usuario seleccionado.
+                Para empleados se utiliza el puesto a rotar; para pasantes, el puesto solicitado.
             </p>
 
             <div class="panel-ia-controles">
                 <div class="campo-ia">
-                    <label class="label-pregunta">Subárea Farmacéutica / Tema</label>
-                    <select class="input-respuesta" @bind="subareaSeleccionada" disabled="@cargandoIA">
-                        @foreach (var subarea in subareasFarmaceuticas)
-                        {
-                            <option value="@subarea">@subarea</option>
-                        }
-                    </select>
+                    <label class="label-pregunta" for="destino-ia">Área / puesto de destino</label>
+                    <input id="destino-ia" class="input-respuesta" value="@DestinoSeleccionado" readonly
+                           placeholder="Seleccione un usuario con destino configurado" />
+                    @if (idUsuarioSeleccionado > 0 && string.IsNullOrWhiteSpace(DestinoSeleccionado))
+                    {
+                        <p class="text-danger mt-2" role="status">Complete el puesto a rotar o solicitado en la cuenta del usuario.</p>
+                    }
                 </div>
 
                 <div class="campo-ia">
@@ -69,7 +69,7 @@
                 </div>
 
                 <div class="campo-ia campo-ia-boton">
-                    <button type="button" class="btn btn-ia" @onclick="GenerarPreguntasConIA" disabled="@cargandoIA">
+                    <button type="button" class="btn btn-ia" @onclick="GenerarPreguntasConIA" disabled="@(cargando || cargandoIA || string.IsNullOrWhiteSpace(DestinoSeleccionado))">
                         @if (cargandoIA)
                         {
                             <span class="spinner"></span>
@@ -88,7 +88,7 @@
                 <div class="ia-cargando">
                     <span class="spinner"></span>
                     <span>
-                        La IA está redactando preguntas de <strong>@subareaSeleccionada</strong>
+                        La IA está redactando preguntas de <strong>@DestinoSeleccionado</strong>
                         (nivel @dificultadSeleccionada). Esto puede tardar unos segundos...
                     </span>
                 </div>
@@ -200,18 +200,26 @@
 
     // ===== HU11: Asistente de IA =====
     private bool cargandoIA = false;
-    private string subareaSeleccionada = "Desarrollo de Medicamentos";
     private string dificultadSeleccionada = "Intermedio";
 
-    private readonly List<string> subareasFarmaceuticas = new()
+    private string? DestinoSeleccionado
     {
-        "Desarrollo de Medicamentos",
-        "Farmacología Clínica",
-        "Control de Calidad Farmacéutica",
-        "Buenas Prácticas de Manufactura",
-        "Normativas de Salud y Regulatorio",
-        "Farmacovigilancia"
-    };
+        get
+        {
+            var usuario = usuarios?.FirstOrDefault(u => u.IdUsuario == idUsuarioSeleccionado);
+            if (usuario == null) return null;
+            return string.Equals(usuario.TipoEvaluado, "Empleado", StringComparison.OrdinalIgnoreCase)
+                ? usuario.PuestoARotar?.Trim()
+                : string.Equals(usuario.TipoEvaluado, "Pasante", StringComparison.OrdinalIgnoreCase)
+                    ? usuario.PuestoSolicitado?.Trim() : null;
+        }
+    }
+
+    private void AlCambiarUsuario()
+    {
+        InicializarPreguntas();
+        mostrarMensaje = false;
+    }
 
     private readonly List<string> nivelesDificultad = new()
     {
@@ -409,6 +417,13 @@ catch (Exception ex)
     private async Task GenerarPreguntasConIA()
     {
         if (cargandoIA) return;
+        if (string.IsNullOrWhiteSpace(DestinoSeleccionado))
+        {
+            mostrarMensaje = true;
+            esError = true;
+            mensajeRespuesta = "Seleccione un usuario con un puesto de destino configurado.";
+            return;
+        }
 
         cargandoIA = true;
         mostrarMensaje = false;
@@ -417,7 +432,7 @@ catch (Exception ex)
         {
             var request = new
             {
-                subarea = subareaSeleccionada,
+                idUsuario = idUsuarioSeleccionado,
                 dificultad = dificultadSeleccionada,
                 cantidadAbiertas = 5,
                 cantidadMultiples = 5,
@@ -537,7 +552,7 @@ catch (Exception ex)
 
             mostrarMensaje = true;
             esError = false;
-            mensajeRespuesta = $"✅ La IA generó {modelo.PreguntasAbiertas.Count} preguntas abiertas y {modelo.PreguntasMultiples.Count} de opción múltiple sobre \"{subareaSeleccionada}\" (nivel {dificultadSeleccionada}).";
+            mensajeRespuesta = $"✅ La IA generó {modelo.PreguntasAbiertas.Count} preguntas abiertas y {modelo.PreguntasMultiples.Count} de opción múltiple sobre \"{DestinoSeleccionado}\" (nivel {dificultadSeleccionada}).";
         }
         catch (Exception ex)
         {

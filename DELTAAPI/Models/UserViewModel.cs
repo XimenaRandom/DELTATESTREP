@@ -6,6 +6,8 @@
         public string NombreCompleto { get; set; } = string.Empty;
         public string? Correo { get; set; }
         public DateOnly? FechaIngreso { get; set; }
+        public string? TipoEvaluado { get; set; }
+        public string? PuestoARotar { get; set; }
         public string? PuestoActual { get; set; }
         public string? PuestoSolicitado { get; set; }
         public string? Estado { get; set; }
