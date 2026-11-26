@@ -22,6 +22,7 @@ public class AsistenteDestino
         {
             Llamadas++;
             using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(ct));
+            Assert.False(body.RootElement.GetProperty("generationConfig").TryGetProperty("thinkingConfig", out _));
             Prompt = body.RootElement.GetProperty("contents")[0].GetProperty("parts")[0].GetProperty("text").GetString();
             var examen = JsonSerializer.Serialize(new {
                 preguntasAbiertas = new[] { new { texto = "Explique el procedimiento del puesto.", puntos = 10 } },
@@ -72,6 +73,18 @@ public class AsistenteDestino
         var result = Assert.IsAssignableFrom<ObjectResult>(await Controlador(db, gemini).GenerarPreguntasIA(new() { IdUsuario = id }));
         Assert.Equal(status, result.StatusCode);
         Assert.Equal(0, gemini.Llamadas);
+    }
+
+    [Theory]
+    [InlineData("Inspector")]
+    [InlineData("Administrador")]
+    public async Task No_Genera_Examen_Para_Roles_De_Gestion(string rol)
+    {
+        await using var db = Contexto(); using var gemini = new GeminiDoble();
+        db.Usuarios.Add(new Usuario { IdUsuario=20, NombreCompleto="Gestor", Ci="20", Contraseña="sin-login", Rol=rol, TipoEvaluado="Empleado", PuestoARotar="Estabilidad" });
+        await db.SaveChangesAsync();
+        Assert.IsType<BadRequestObjectResult>(await Controlador(db,gemini).GenerarPreguntasIA(new(){IdUsuario=20}));
+        Assert.Equal(0,gemini.Llamadas);
     }
 
     private static DeltaTestContext Contexto() => new(new DbContextOptionsBuilder<DeltaTestContext>()

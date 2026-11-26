@@ -10,7 +10,7 @@ public class RegistroLaboral
     [InlineData("Inspector", "Usuario", HttpStatusCode.Created)]
     [InlineData("Inspector", null, HttpStatusCode.Created)]
     [InlineData("Inspector", "Administrador", HttpStatusCode.Forbidden)]
-    [InlineData("Inspector", " inspector ", HttpStatusCode.Forbidden)]
+    [InlineData("Inspector", " inspector ", HttpStatusCode.Created)]
     [InlineData("Administrador", "Inspector", HttpStatusCode.Created)]
     [InlineData("Administrador", "Administrador", HttpStatusCode.Created)]
     [InlineData("Usuario", "Usuario", HttpStatusCode.Forbidden)]
@@ -35,7 +35,7 @@ public class RegistroLaboral
             if (expected == HttpStatusCode.Created)
             {
                 Assert.NotNull(cuenta);
-                Assert.Equal(rol ?? "Usuario", cuenta.Rol);
+                Assert.Equal(string.IsNullOrWhiteSpace(rol) ? "Usuario" : rol.Trim().Equals("Inspector", StringComparison.OrdinalIgnoreCase) ? "Inspector" : rol.Trim(), cuenta.Rol);
                 Assert.NotNull(cuenta.IdCreadoPor);
                 var autor = await db.Usuarios.SingleAsync(u => u.IdUsuario == cuenta.IdCreadoPor);
                 Assert.Equal(creador, autor.Rol);

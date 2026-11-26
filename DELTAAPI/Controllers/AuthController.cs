@@ -60,12 +60,12 @@ namespace DELTAAPI.Controllers
         [Authorize(Roles = "Administrador,Inspector")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
-            // Solo el administrador puede asignar roles con permisos de gestión.
+            // Administradores e inspectores pueden crear usuarios e inspectores; Administrador sigue reservado.
             var requestedRole = string.IsNullOrWhiteSpace(dto?.Role) ? "Usuario" : dto.Role.Trim();
             var roleNormalized = NormalizeRole(requestedRole);
             if (roleNormalized == null)
                 return BadRequest("Rol no válido.");
-            if (!User.IsInRole("Administrador") && roleNormalized != "Usuario")
+            if (!User.IsInRole("Administrador") && roleNormalized == "Administrador")
                 return Forbid();
 
             if (string.IsNullOrWhiteSpace(dto?.NombreCompleto) || string.IsNullOrWhiteSpace(dto.Password))

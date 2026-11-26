@@ -418,10 +418,13 @@ mensaje = "Evaluación teórica creada exitosamente",
 
             var evaluado = await _context.Usuarios.AsNoTracking()
                 .Where(u => u.IdUsuario == request.IdUsuario)
-                .Select(u => new { u.TipoEvaluado, u.PuestoARotar, u.PuestoSolicitado })
+                .Select(u => new { u.Rol, u.TipoEvaluado, u.PuestoARotar, u.PuestoSolicitado })
                 .SingleOrDefaultAsync();
             if (evaluado == null)
                 return NotFound(new { mensaje = "Usuario no encontrado." });
+
+            if (!string.Equals(evaluado.Rol?.Trim(), "Usuario", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { mensaje = "Solo se pueden generar preguntas para cuentas con rol Usuario." });
 
             // The server resolves the destination; a client-supplied topic cannot override it.
             var subarea = string.Equals(evaluado.TipoEvaluado, "Empleado", StringComparison.OrdinalIgnoreCase)
@@ -478,8 +481,7 @@ mensaje = "Evaluación teórica creada exitosamente",
                     responseSchema = ConstruirEsquemaRespuestaIA(),
                     temperature = 0.9,
                     topP = 0.95,
-                    maxOutputTokens = 8192,
-                    thinkingConfig = new { thinkingBudget = 0 }
+                    maxOutputTokens = 8192
                 }
             };
 

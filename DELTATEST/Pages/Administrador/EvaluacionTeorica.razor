@@ -228,7 +228,8 @@
     {
         try
         {
-         usuarios = await Http.GetFromJsonAsync<List<UserViewModel>>("api/usuarios");
+         usuarios = await Http.GetFromJsonAsync<List<UserViewModel>>("api/usuarios?soloEvaluables=true");
+         usuarios = usuarios?.Where(u => string.Equals(u.Rol?.Trim(), "Usuario", StringComparison.OrdinalIgnoreCase)).ToList();
    }
         catch (Exception ex)
         {

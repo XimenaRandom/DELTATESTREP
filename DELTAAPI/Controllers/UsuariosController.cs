@@ -16,9 +16,13 @@ namespace DELTAAPI.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Administrador,Inspector")]
-        public async Task<IActionResult> GetAll()
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        public async Task<IActionResult> GetAll([FromQuery] bool soloEvaluables = false)
         {
-            var list = await _context.Usuarios
+            var query = _context.Usuarios.AsNoTracking();
+            if (soloEvaluables)
+                query = query.Where(u => u.Rol != null && u.Rol.Trim().ToUpper() == "USUARIO");
+            var list = await query
     .Include(u => u.EvaluacionIdEvaluadoNavigations)
  .AsNoTracking()
  .Select(u => new UserViewModel {
@@ -56,6 +60,7 @@ IdUsuario = u.IdUsuario,
             return Ok(cargos);
         }
 
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
